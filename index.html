@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Custom scrollbar for clean minimal aesthetic */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
+  </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 h-screen w-screen flex flex-col font-sans antialiased selection:bg-zinc-800">
+
+  <!-- ================= SETUP SCREEN ================= -->
+  <div id="setup-screen" class="flex-1 flex items-center justify-center p-4">
+    <div class="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-2xl space-y-5">
+      <h1 class="text-2xl font-bold tracking-tight text-center text-white">Chat</h1>
+      
+      <div class="space-y-4">
+        <div>
+          <input type="text" id="input-nickname" placeholder="Nickname" maxlength="20"
+            class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-600 transition">
+        </div>
+
+        <div>
+          <input type="password" id="input-password" placeholder="Username password" minlength="1" autocomplete="new-password"
+            class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-600 transition">
+        </div>
+
+        <div>
+          <input type="text" id="input-room" placeholder="Room Code" maxlength="30"
+            class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-600 transition">
+        </div>
+
+        <!-- Color Selection Badges -->
+        <div>
+          <div id="color-picker" class="flex justify-between items-center px-1">
+            <button type="button" data-color="#3b82f6" class="color-btn w-7 h-7 rounded-full bg-blue-500 ring-2 ring-white ring-offset-2 ring-offset-zinc-900 transition"></button>
+            <button type="button" data-color="#10b981" class="color-btn w-7 h-7 rounded-full bg-emerald-500 transition"></button>
+            <button type="button" data-color="#a855f7" class="color-btn w-7 h-7 rounded-full bg-purple-500 transition"></button>
+            <button type="button" data-color="#f43f5e" class="color-btn w-7 h-7 rounded-full bg-rose-500 transition"></button>
+            <button type="button" data-color="#eab308" class="color-btn w-7 h-7 rounded-full bg-yellow-500 transition"></button>
+            <button type="button" data-color="#06b6d4" class="color-btn w-7 h-7 rounded-full bg-cyan-500 transition"></button>
+          </div>
+        </div>
+      </div>
+
+      <button id="btn-join" class="w-full bg-white hover:bg-zinc-200 text-zinc-950 font-semibold py-3 rounded-xl transition text-sm">
+        Join
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= CHAT SCREEN ================= -->
+  <div id="chat-screen" class="hidden flex-1 flex flex-col h-full w-full max-w-4xl mx-auto border-x border-zinc-800/50">
+    
+    <!-- Top Header -->
+    <header class="h-14 border-b border-zinc-800/80 px-4 flex items-center justify-between bg-zinc-950/80 backdrop-blur shrink-0">
+      <div class="flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span id="display-room" class="font-semibold text-sm tracking-wide text-zinc-200"></span>
+        <span id="owner-badge" class="hidden text-[10px] bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full font-medium">Owner</span>
+      </div>
+      
+      <div class="flex items-center gap-2">
+        <!-- Members Button -->
+        <button id="btn-members" class="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs font-medium text-zinc-300 transition flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          <span>Members</span>
+          <span id="members-count" class="bg-zinc-800 text-zinc-400 px-1.5 py-0.2 rounded-full text-[10px]">1</span>
+        </button>
+
+        <button id="btn-open-blank" title="Open in a new blank tab" class="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs font-medium text-zinc-300 transition">
+          Open
+        </button>
+
+        <button id="btn-leave" class="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs font-medium text-zinc-400 hover:text-zinc-200 transition">
+          Leave
+        </button>
+      </div>
+    </header>
+
+    <!-- Messages Container -->
+    <main id="messages-container" class="flex-1 overflow-y-auto p-4 space-y-4">
+      <!-- Dynamic messages load here -->
+    </main>
+
+    <!-- Bottom Input Bar -->
+    <footer class="p-3 border-t border-zinc-800/80 bg-zinc-950 shrink-0">
+      <form id="chat-form" class="flex items-center gap-2">
+        <input type="file" id="image-input" accept="image/*" class="hidden">
+        
+        <!-- Camera Button -->
+        <button type="button" id="btn-camera" class="p-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 transition border border-zinc-800 shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        </button>
+
+        <!-- Message Input -->
+        <input type="text" id="input-message" placeholder="Type a message..." autocomplete="off"
+          class="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-700 transition">
+
+        <!-- Send Button -->
+        <button type="submit" class="p-2.5 rounded-xl bg-white hover:bg-zinc-200 text-zinc-950 transition font-medium shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+        </button>
+      </form>
+    </footer>
+  </div>
+
+  <!-- ================= MEMBERS MODAL ================= -->
+  <div id="members-modal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-xs p-5 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center pb-2 border-b border-zinc-800">
+        <h3 class="font-semibold text-sm text-zinc-200">Online Members</h3>
+        <button id="btn-close-members" class="text-zinc-500 hover:text-zinc-300 text-sm">✕</button>
+      </div>
+      <div id="members-list" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+        <!-- Dynamic online members list -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= LIGHTBOX MODAL ================= -->
+  <div id="lightbox" class="hidden fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 cursor-zoom-out">
+    <img id="lightbox-img" class="max-w-full max-h-full rounded-lg object-contain shadow-2xl">
+  </div>
+
+  <!-- ================= JAVASCRIPT ================= -->
+  <script>
+    const INACTIVITY_LIMIT = 2 * 24 * 60 * 60 * 1000;
+
+    // State management
+    const state = {
+      nickname: '',
+      roomCode: '',
+      color: '#3b82f6',
+      clientId: 'usr_' + Math.random().toString(36).substring(2, 9),
+      isOwner: false,
+      ownerId: null,
+      ownerNickname: null,
+      passwordHash: null,
+      authenticated: false,
+      eventSource: null,
+      unreadCount: 0,
+      isFocused: true,
+      members: {}, // clientId -> { nickname, color, isOwner, lastSeen }
+      bannedNicknames: new Set(),
+      presenceTimer: null,
+      ownerClaimTimer: null,
+      inactivityTimer: null,
+      lastActivityAt: null,
+      closed: false,
+      joinedAt: null,
+      sessionStartedAt: null
+    };
+
+    // DOM Elements
+    const setupScreen = document.getElementById('setup-screen');
+    const chatScreen = document.getElementById('chat-screen');
+    const inputNickname = document.getElementById('input-nickname');
+    const inputPassword = document.getElementById('input-password');
+    const inputRoom = document.getElementById('input-room');
+    const btnJoin = document.getElementById('btn-join');
+    const displayRoom = document.getElementById('display-room');
+    const ownerBadge = document.getElementById('owner-badge');
+    const messagesContainer = document.getElementById('messages-container');
+    const chatForm = document.getElementById('chat-form');
+    const inputMessage = document.getElementById('input-message');
+    const btnCamera = document.getElementById('btn-camera');
+    const imageInput = document.getElementById('image-input');
+    const btnLeave = document.getElementById('btn-leave');
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightbox-img');
+    const btnMembers = document.getElementById('btn-members');
+    const membersModal = document.getElementById('members-modal');
+    const btnCloseMembers = document.getElementById('btn-close-members');
+    const membersList = document.getElementById('members-list');
+    const membersCount = document.getElementById('members-count');
+    const btnOpenBlank = document.getElementById('btn-open-blank');
+
+    btnOpenBlank.addEventListener('click', () => {
+      const blankWindow = window.open('about:blank', '_blank');
+      if (!blankWindow) return;
+
+      blankWindow.document.open();
+      blankWindow.document.write(`<!DOCTYPE html>${document.documentElement.outerHTML}`);
+      blankWindow.document.close();
+    });
+
+    // Setup Color Picker
+    document.querySelectorAll('.color-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('ring-2', 'ring-white', 'ring-offset-2', 'ring-offset-zinc-900'));
+        e.target.classList.add('ring-2', 'ring-white', 'ring-offset-2', 'ring-offset-zinc-900');
+        state.color = e.target.getAttribute('data-color');
+      });
+    });
+
+    // Window focus trackers
+    window.addEventListener('focus', () => {
+      state.isFocused = true;
+      state.unreadCount = 0;
+      document.title = "Chat";
+    });
+    window.addEventListener('blur', () => { state.isFocused = false; });
+
+    // Join Chat
+    btnJoin.addEventListener('click', joinChat);
+    async function joinChat() {
+      const nick = inputNickname.value.trim();
+      const password = inputPassword.value;
+      const room = inputRoom.value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+
+      if (!room || !password) return;
+
+      state.nickname = nick;
+      state.roomCode = room;
+      state.passwordHash = await hashPassword(password);
+      state.authenticated = true;
+      state.lastActivityAt = null;
+      state.closed = false;
+      state.joinedAt = Date.now();
+      state.sessionStartedAt = state.joinedAt;
+
+      displayRoom.textContent = `#${state.roomCode}`;
+
+      setupScreen.classList.add('hidden');
+      chatScreen.classList.remove('hidden');
+
+      connectSSE();
+      
+      // Announce presence, then claim only if no owner was announced.
+      broadcastPresence();
+      scheduleOwnerClaim();
+      state.presenceTimer = setInterval(broadcastPresence, 30000);
+      state.inactivityTimer = setInterval(checkInactivity, 60000);
+      setTimeout(checkInactivity, 3000);
+
+      // Handle direct paste
+      window.addEventListener('paste', handleClipboardPaste);
+    }
+
+    function scheduleOwnerClaim() {
+      if (state.ownerClaimTimer) clearTimeout(state.ownerClaimTimer);
+      state.ownerClaimTimer = setTimeout(() => {
+        if (!state.ownerId && state.nickname) {
+          state.ownerId = state.clientId;
+          state.ownerNickname = state.nickname;
+          state.isOwner = true;
+          ownerBadge.classList.remove('hidden');
+          broadcastPresence();
+        }
+      }, 1000);
+    }
+
+    // Leave Chat
+    btnLeave.addEventListener('click', leaveChat);
+    function leaveChat() {
+      if (state.roomCode && state.nickname && state.sessionStartedAt) {
+        sendPayload({
+          type: 'leave',
+          clientId: state.clientId,
+          nickname: state.nickname,
+          sessionStartedAt: state.sessionStartedAt
+        });
+      }
+      if (state.eventSource) state.eventSource.close();
+      if (state.presenceTimer) clearInterval(state.presenceTimer);
+      if (state.ownerClaimTimer) clearTimeout(state.ownerClaimTimer);
+      if (state.inactivityTimer) clearInterval(state.inactivityTimer);
+      window.removeEventListener('paste', handleClipboardPaste);
+      messagesContainer.innerHTML = '';
+      setupScreen.classList.remove('hidden');
+      chatScreen.classList.add('hidden');
+      ownerBadge.classList.add('hidden');
+      state.isOwner = false;
+      state.ownerId = null;
+      state.ownerNickname = null;
+      state.passwordHash = null;
+      state.authenticated = false;
+      state.lastActivityAt = null;
+      state.closed = false;
+      state.joinedAt = null;
+      state.sessionStartedAt = null;
+      state.members = {};
+      state.bannedNicknames.clear();
+      document.title = "Chat";
+    }
+
+    // Members Modal Toggle
+    btnMembers.addEventListener('click', () => {
+      renderMembersList();
+      membersModal.classList.remove('hidden');
+    });
+    btnCloseMembers.addEventListener('click', () => membersModal.classList.add('hidden'));
+    membersModal.addEventListener('click', (e) => { if (e.target === membersModal) membersModal.classList.add('hidden'); });
+
+    function renderMembersList() {
+      membersList.innerHTML = '';
+      const now = Date.now();
+      let activeCount = 0;
+
+      Object.values(state.members).forEach(m => {
+        // Filter out stale members (> 10 mins without heartbeats)
+        if (now - m.lastSeen > 600000) return;
+        activeCount++;
+
+        const div = document.createElement('div');
+        div.className = "flex items-center justify-between p-2 rounded-xl bg-zinc-950 border border-zinc-800/80 text-xs";
+        div.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: ${m.color}"></span>
+            <span class="font-medium text-zinc-200">${escapeHtml(m.nickname)}</span>
+          </div>
+          ${m.isOwner ? '<span class="text-[10px] bg-amber-500/20 text-amber-400 border border-amber-500/30 px-1.5 py-0.2 rounded-full">Owner</span>' : ''}
+        `;
+        membersList.appendChild(div);
+      });
+
+      membersCount.textContent = activeCount || 1;
+    }
+
+    // Connect to ntfy.sh SSE Stream
+    function connectSSE() {
+      const url = `https://ntfy.sh/${state.roomCode}/sse?since=all`;
+      state.eventSource = new EventSource(url);
+
+      state.eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          
+          if (data.event === 'message' && data.message) {
+            handleIncomingPayload(data);
+          }
+        } catch (e) {
+          // Ignore parse errors
+        }
+      };
+    }
+
+    // Process incoming network payload
+    function handleIncomingPayload(data) {
+      let payload;
+      try {
+        payload = JSON.parse(data.message);
+      } catch (e) {
+        return; // ignore non-json
+      }
+
+      if (payload.type === 'close') {
+        const closeTime = data.time ? Number(data.time) * 1000 : Date.now();
+        if (state.joinedAt && closeTime < state.joinedAt) {
+          reopenClearedChat();
+        } else {
+          state.closed = true;
+          alert(payload.reason || 'This chat has been closed.');
+          leaveChat();
+        }
+        return;
+      }
+
+      if (payload.type === 'text' || payload.type === 'image') {
+        const messageTime = data.time ? Number(data.time) * 1000 : Date.now();
+        state.lastActivityAt = Math.max(state.lastActivityAt || 0, messageTime);
+      }
+
+      const messageTime = data.time ? Number(data.time) * 1000 : Date.now();
+      const isHistoricalMessage = Boolean(state.joinedAt && messageTime < state.joinedAt);
+      const isSameUsername = payload.nickname && state.nickname
+        && payload.nickname.toLowerCase() === state.nickname.toLowerCase();
+      const isOwnMessage = payload.clientId === state.clientId
+        || (isHistoricalMessage && isSameUsername);
+
+      // 1. Process System / Presence Messages
+      if (payload.type === 'presence') {
+        const sameUsername = state.nickname && payload.nickname
+          && state.nickname.toLowerCase() === payload.nickname.toLowerCase();
+        if (sameUsername && payload.passwordHash && payload.passwordHash !== state.passwordHash) {
+          alert('That username is already in use with a different password.');
+          leaveChat();
+          return;
+        }
+
+        // If two computers claim at once, the lower client ID wins everywhere.
+        if (payload.isOwner && payload.passwordHash && (!state.ownerId || payload.clientId < state.ownerId)) {
+          state.ownerId = payload.clientId;
+          state.ownerNickname = payload.nickname;
+        }
+        if (!state.nickname && state.ownerNickname) {
+          state.nickname = state.ownerNickname;
+          inputNickname.value = state.ownerNickname;
+        }
+        if (state.ownerId) {
+          state.isOwner = Boolean(state.authenticated && state.nickname && state.ownerNickname
+            && state.nickname.toLowerCase() === state.ownerNickname.toLowerCase());
+          ownerBadge.classList.toggle('hidden', !state.isOwner);
+        }
+
+        const incomingSession = Number(payload.sessionStartedAt) || 0;
+        const existingSameName = Object.entries(state.members).find(([id, member]) => (
+          id !== payload.clientId
+          && member.nickname.toLowerCase() === payload.nickname.toLowerCase()
+        ));
+        if (existingSameName && (existingSameName[1].sessionStartedAt || 0) > incomingSession) {
+          return;
+        }
+        Object.keys(state.members).forEach(id => {
+          if (id !== payload.clientId
+            && state.members[id].nickname.toLowerCase() === payload.nickname.toLowerCase()) {
+            delete state.members[id];
+          }
+        });
+        state.members[payload.clientId] = {
+          nickname: payload.nickname,
+          color: payload.color,
+          isOwner: payload.isOwner,
+          sessionStartedAt: incomingSession,
+          lastSeen: Date.now()
+        };
+        renderMembersList();
+        return;
+      }
+
+      if (payload.type === 'leave') {
+        delete state.members[payload.clientId];
+        renderMembersList();
+        return;
+      }
+
+      // 2. Process Kick Command
+      if (payload.type === 'kick') {
+        const target = payload.targetNickname.toLowerCase();
+        state.bannedNicknames.add(target);
+
+        // If current user is the kicked target
+        if (state.nickname.toLowerCase() === target) {
+          alert("You have been kicked from the room by the owner.");
+          leaveChat();
+          return;
+        }
+
+        // Remove kicked user from members
+        Object.keys(state.members).forEach(id => {
+          if (state.members[id].nickname.toLowerCase() === target) {
+            delete state.members[id];
+          }
+        });
+        renderMembersList();
+
+        appendSystemNotice(`${payload.targetNickname} was kicked by the owner.`);
+        return;
+      }
+
+      if (payload.type === 'unkick') {
+        const target = payload.targetNickname.toLowerCase();
+        state.bannedNicknames.delete(target);
+        appendSystemNotice(`${payload.targetNickname} can join the room again.`);
+        return;
+      }
+
+      // Ignore messages from banned nicknames or own messages
+      if ((!isHistoricalMessage && payload.clientId === state.clientId)
+        || state.bannedNicknames.has(payload.nickname.toLowerCase())) {
+        return;
+      }
+
+      // Track member last seen
+      state.members[payload.clientId] = {
+        nickname: payload.nickname,
+        color: payload.color,
+        isOwner: payload.isOwner,
+        lastSeen: Date.now()
+      };
+      renderMembersList();
+
+      // Audio & Tab Counter
+      if (!state.isFocused) {
+        playNotificationSound();
+        state.unreadCount++;
+        document.title = `(${state.unreadCount}) Chat`;
+      }
+
+      // 3. Render Messages
+      if (payload.type === 'text') {
+        renderMessageBubble({
+          nickname: payload.nickname,
+          color: payload.color,
+          text: payload.text,
+          isSelf: isOwnMessage,
+          time: new Date(messageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        });
+      } else if (payload.type === 'image' && data.attachment && data.attachment.url) {
+        renderImageBubble({
+          nickname: payload.nickname,
+          color: payload.color,
+          imgUrl: data.attachment.url,
+          isSelf: isOwnMessage,
+          time: new Date(messageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        });
+      }
+    }
+
+    // Send Form Handler
+    chatForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const text = inputMessage.value.trim();
+      if (!text) return;
+
+      inputMessage.value = '';
+
+      // Check for /kick command
+      if (text.startsWith('/kick ')) {
+        const target = text.substring(6).trim();
+        if (!target) return;
+
+        if (!state.isOwner) {
+          appendSystemNotice("Only the room creator can kick members.");
+          return;
+        }
+
+        sendPayload({
+          type: 'kick',
+          targetNickname: target,
+          clientId: state.clientId,
+          isOwner: true
+        });
+        return;
+      }
+
+      if (text.toLowerCase() === '/kicked') {
+        if (!state.isOwner) {
+          appendSystemNotice("Only the room owner can view blocked users.");
+          return;
+        }
+        const blockedUsers = Array.from(state.bannedNicknames);
+        appendSystemNotice(blockedUsers.length ? `Blocked users: ${blockedUsers.join(', ')}` : 'No users are blocked.');
+        return;
+      }
+
+      if (text.toLowerCase().startsWith('/unkick ')) {
+        const target = text.substring(8).trim();
+        if (!target) return;
+
+        if (!state.isOwner) {
+          appendSystemNotice("Only the room owner can unblock users.");
+          return;
+        }
+
+        const targetKey = target.toLowerCase();
+        if (!state.bannedNicknames.has(targetKey)) {
+          appendSystemNotice(`${target} is not blocked.`);
+          return;
+        }
+
+        state.bannedNicknames.delete(targetKey);
+        sendPayload({
+          type: 'unkick',
+          targetNickname: target,
+          clientId: state.clientId,
+          isOwner: true
+        });
+        appendSystemNotice(`${target} can join the room again.`);
+        return;
+      }
+
+      if (text.toLowerCase() === '/closechat') {
+        if (!state.isOwner) {
+          appendSystemNotice("Only the room owner can close this chat.");
+          return;
+        }
+        closeChat('The room owner closed this chat.');
+        return;
+      }
+
+      // Normal Chat Message
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      // Render local self bubble immediately
+      renderMessageBubble({
+        nickname: state.nickname,
+        color: state.color,
+        text: text,
+        isSelf: true,
+        time: timeStr
+      });
+      state.lastActivityAt = Date.now();
+
+      sendPayload({
+        type: 'text',
+        clientId: state.clientId,
+        nickname: state.nickname,
+        color: state.color,
+        isOwner: state.isOwner,
+        text: text
+      });
+
+      broadcastPresence();
+    });
+
+    // Send JSON Payload over ntfy.sh
+    function sendPayload(obj) {
+      fetch(`https://ntfy.sh/${state.roomCode}`, {
+        method: 'POST',
+        body: JSON.stringify(obj)
+      }).catch(() => {});
+    }
+
+    // Broadcast presence update
+    function broadcastPresence() {
+      sendPayload({
+        type: 'presence',
+        clientId: state.clientId,
+        nickname: state.nickname,
+        color: state.color,
+        isOwner: state.isOwner,
+        sessionStartedAt: state.sessionStartedAt,
+        passwordHash: state.passwordHash
+      });
+    }
+
+    async function hashPassword(password) {
+      const encodedPassword = new TextEncoder().encode(password);
+      const digest = await crypto.subtle.digest('SHA-256', encodedPassword);
+      return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+    }
+
+    function checkInactivity() {
+      if (!state.lastActivityAt || Date.now() - state.lastActivityAt < INACTIVITY_LIMIT) return;
+      closeChat('This chat was closed after two days without activity.');
+    }
+
+    function closeChat(reason) {
+      if (state.closed) return;
+      state.closed = true;
+      sendPayload({
+        type: 'close',
+        clientId: state.clientId,
+        nickname: state.nickname,
+        reason
+      });
+      leaveChat();
+    }
+
+    function reopenClearedChat() {
+      messagesContainer.innerHTML = '';
+      state.members = {};
+      state.bannedNicknames.clear();
+      state.ownerId = null;
+      state.ownerNickname = null;
+      state.isOwner = false;
+      state.lastActivityAt = null;
+      state.closed = false;
+      ownerBadge.classList.add('hidden');
+      scheduleOwnerClaim();
+    }
+
+    // Image Upload Handling
+    btnCamera.addEventListener('click', () => imageInput.click());
+    imageInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) {
+        processAndSendImage(e.target.files[0]);
+      }
+    });
+
+    function handleClipboardPaste(e) {
+      const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+      for (let item of items) {
+        if (item.kind === 'file' && item.type.startsWith('image/')) {
+          processAndSendImage(item.getAsFile());
+        }
+      }
+    }
+
+    // Compress & Upload Image as Binary Attachment to ntfy.sh
+    function processAndSendImage(file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const maxDim = 800;
+          let w = img.width, h = img.height;
+
+          if (w > maxDim || h > maxDim) {
+            if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
+            else { w = Math.round((w * maxDim) / h); h = maxDim; }
+          }
+
+          canvas.width = w;
+          canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+
+          canvas.toBlob((blob) => {
+            const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const tempUrl = URL.createObjectURL(blob);
+
+            // Render local bubble
+            renderImageBubble({
+              nickname: state.nickname,
+              color: state.color,
+              imgUrl: tempUrl,
+              isSelf: true,
+              time: timeStr
+            });
+            state.lastActivityAt = Date.now();
+
+            // POST binary image to ntfy.sh with header metadata
+            fetch(`https://ntfy.sh/${state.roomCode}`, {
+              method: 'POST',
+              body: blob,
+              headers: {
+                'Filename': 'image.jpg',
+                'Message': JSON.stringify({
+                  type: 'image',
+                  clientId: state.clientId,
+                  nickname: state.nickname,
+                  color: state.color,
+                  isOwner: state.isOwner
+                })
+              }
+            }).catch(() => {});
+
+            broadcastPresence();
+          }, 'image/jpeg', 0.7);
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // UI Render Helpers
+    function renderMessageBubble({ nickname, color, text, isSelf, time }) {
+      const wrap = document.createElement('div');
+      wrap.className = `flex flex-col ${isSelf ? 'items-end' : 'items-start'}`;
+
+      wrap.innerHTML = `
+        <div class="flex items-center gap-1.5 mb-1 px-1">
+          <span class="text-[11px] font-semibold" style="color: ${color}">${escapeHtml(nickname)}</span>
+          <span class="text-[10px] text-zinc-500">${time}</span>
+        </div>
+        <div class="max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
+          isSelf 
+            ? 'bg-zinc-800 text-zinc-100 rounded-tr-none' 
+            : 'bg-zinc-900 border border-zinc-800/80 text-zinc-200 rounded-tl-none'
+        } break-words">
+          ${escapeHtml(text)}
+        </div>
+      `;
+
+      messagesContainer.appendChild(wrap);
+      scrollToBottom();
+    }
+
+    function renderImageBubble({ nickname, color, imgUrl, isSelf, time }) {
+      const wrap = document.createElement('div');
+      wrap.className = `flex flex-col ${isSelf ? 'items-end' : 'items-start'}`;
+
+      wrap.innerHTML = `
+        <div class="flex items-center gap-1.5 mb-1 px-1">
+          <span class="text-[11px] font-semibold" style="color: ${color}">${escapeHtml(nickname)}</span>
+          <span class="text-[10px] text-zinc-500">${time}</span>
+        </div>
+        <div class="max-w-[75%] rounded-2xl overflow-hidden border border-zinc-800 bg-zinc-900 ${
+          isSelf ? 'rounded-tr-none' : 'rounded-tl-none'
+        }">
+          <img src="${imgUrl}" class="max-h-64 object-cover cursor-pointer hover:opacity-95 transition" onclick="openLightbox('${imgUrl}')">
+        </div>
+      `;
+
+      messagesContainer.appendChild(wrap);
+      scrollToBottom();
+    }
+
+    function appendSystemNotice(msg) {
+      const div = document.createElement('div');
+      div.className = "text-center my-2";
+      div.innerHTML = `<span class="text-[11px] bg-zinc-900 border border-zinc-800/80 text-zinc-400 px-3 py-1 rounded-full">${escapeHtml(msg)}</span>`;
+      messagesContainer.appendChild(div);
+      scrollToBottom();
+    }
+
+    function scrollToBottom() {
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    // Lightbox Modal
+    window.openLightbox = (url) => {
+      lightboxImg.src = url;
+      lightbox.classList.remove('hidden');
+    };
+    lightbox.addEventListener('click', () => lightbox.classList.add('hidden'));
+
+    // Notification Beep Audio (Web Audio API)
+    function playNotificationSound() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.08); // A5
+        gain.gain.setValueAtTime(0.05, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.25);
+      } catch (e) {}
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+  </script>
+</body>
+</html>
